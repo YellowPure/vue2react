@@ -3,6 +3,8 @@ import * as t from '@babel/types';
 import eventMap from './utils/eventMap';
 import logger from './utils/logUtil';
 import { anyObject, Template } from './utils/types';
+import * as parser from '@babel/parser'
+
 
 export default function jsxElementGenerator(
   vnode: anyObject,
@@ -135,6 +137,43 @@ export default function jsxElementGenerator(
               )
             );
             break;
+          case 'v-text':
+            // Support following syntax:
+            attrsCollector.add(directive.value);
+            wrappedElement = t.jSXText(
+              `{${directive.value}}`
+            );
+
+            break;
+          case 'v-model':
+            directivesAttr.push(
+              t.jSXAttribute(
+                t.jSXIdentifier(`value`),
+                t.jSXExpressionContainer(t.identifier(directive.value))
+              )
+            );
+            console.log(t.objectExpression([
+              t.objectProperty(t.identifier('val'), t.identifier(directive.value))
+            ]))
+
+            const expression = t.arrowFunctionExpression(
+              [t.identifier('val')],
+              t.callExpression(
+                t.memberExpression(t.identifier('this'), t.identifier('setState')),
+                [
+                  t.objectExpression([
+                    t.objectProperty(t.identifier(directive.value), t.identifier('val'))
+                  ])
+                ]
+              )
+            )
+            directivesAttr.push(
+              t.jSXAttribute(
+                t.jSXIdentifier('onChange'),
+                t.jSXExpressionContainer(expression)
+              )
+            )
+            break;
           default:
             break;
         }
@@ -152,13 +191,38 @@ export default function jsxElementGenerator(
       t.jSXClosingElement(t.jSXIdentifier(vnode.tag)),
       []
     );
-
+    // console.log(commonAttrs, staticClassAttrs, eventAttrs, keyAttrs, directivesAttr)
     if (ifConditions) {
       // Support following syntax:
       // <div v-if="show"/> -> {show && <div/>}
       wrappedElement = t.jSXExpressionContainer(
         t.logicalExpression('&&', t.identifier(ifConditions[0].exp), element)
       );
+
+      // v-if and v-else
+      if (ifConditions.length === 2 && ifConditions[1].block && ifConditions[1].block.else) {
+        let left = ifConditions[0].block;
+        let right = ifConditions[1].block;
+        // ifConditions无限循环
+        delete left.ifConditions;
+        delete right.ifConditions;
+        let leftBlock = jsxElementGenerator(left, null, new Set());
+        let rightBlock = jsxElementGenerator(right, null, new Set());
+        console.log(leftBlock, rightBlock)
+        // // let left = t.jSXElement(t.jSXOpeningElement(t.jSXIdentifier(tag), []), t.jSXClosingElement(t.jSXIdentifier(tag)), [])
+        // // console.log('left', leftBlock)
+        // // let rightBlock = ifConditions[1].block;
+        wrappedElement = t.jSXExpressionContainer(
+          t.conditionalExpression(parser.parseExpression(ifConditions[0].exp), leftBlock.ast, rightBlock.ast)
+        );
+        console.log(wrappedElement)
+
+      } else if (ifConditions.length > 2) {
+        /**
+         * if-else就是从尾部遍历conditions 若干条件语句组合
+         * @todo ifConditions 转化为递归ast 
+         */
+      }
     } else if (alias) {
       // Support following syntax:
       // <div v-for="item in list"/> -> {list.map(item => <div/>)}

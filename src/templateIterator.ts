@@ -8,7 +8,6 @@ export default function templateIterator(template: string): Template {
   const { ast, errors, tips } = compiler.compile(template, {
     whitespace: 'condense'
   });
-
   if (errors.length > 0) {
     return errors.forEach((error: string) => {
       logger.log(`${error} ---vue-template-compiler: compile`, 'error');

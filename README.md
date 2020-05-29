@@ -74,11 +74,11 @@ Options:
   - [x] beforeDestroy
   - [x] errorCaptured
 - Directives
-  - [ ] v-text
+  - [x] v-text
   - [x] v-html
   - [x] v-show
   - [x] v-if
-  - [ ] v-else
+  - [x] v-else
   - [ ] v-else-if
   - [x] v-for
   - [x] v-on / @
@@ -86,7 +86,7 @@ Options:
   - [ ] v-model
   - [ ] v-pre
   - [ ] v-cloak
-  - [ ] v-once
+  - ~~[ ] v-once~~
 - Special Attributes
   - [x] key
   - [ ] ref

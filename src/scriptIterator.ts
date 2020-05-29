@@ -9,7 +9,7 @@ export default function scriptIterator(script: string) {
   const vast = parse(script, {
     sourceType: 'module'
   });
-
+  console.log('vast', vast)
   const visitor = new ScriptVisitor();
 
   // collect props and data key firstly
