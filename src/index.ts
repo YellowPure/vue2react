@@ -32,7 +32,6 @@ export function transformCode(sourceCode: string) {
     const styles = result.styles;
 
     const hasStyle = styles.length > 0;
-
     const script = scriptIterator(preScript);
     const template = templateIterator(preTemplate);
 

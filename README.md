@@ -83,10 +83,10 @@ Options:
   - [x] v-for
   - [x] v-on / @
   - [x] v-bind / :
-  - [ ] v-model
-  - [ ] v-pre
-  - [ ] v-cloak
-  - ~~[ ] v-once~~
+  - [x] v-model
+  - ~~[ ] v-pre~~   当前项目未使用到
+  - ~~[ ] v-cloak~~
+  - ~~[ ] v-once~~  当前项目未使用到
 - Special Attributes
   - [x] key
   - [ ] ref

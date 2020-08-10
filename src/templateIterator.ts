@@ -20,5 +20,5 @@ export default function templateIterator(template: string): Template {
     });
   }
 
-  return jsxElementGenerator(ast, null, new Set());
+  return jsxElementGenerator(ast, null, new Set(), []);
 }

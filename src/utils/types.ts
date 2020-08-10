@@ -13,6 +13,7 @@ export interface Script {
 export interface Template {
   ast: t.JSXElement | undefined;
   attrsCollector: Set<string>;
+  refs: any[];
 }
 
 export interface App {

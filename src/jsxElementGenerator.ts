@@ -9,7 +9,8 @@ import * as parser from '@babel/parser'
 export default function jsxElementGenerator(
   vnode: anyObject,
   parentElement: t.JSXElement | null,
-  attrsCollector: Set<string>
+  attrsCollector: Set<string>,
+  refs: any[]
 ): Template {
   const {
     type,
@@ -24,7 +25,7 @@ export default function jsxElementGenerator(
   let element: t.JSXElement;
   let wrappedElement: t.JSXExpressionContainer | t.JSXElement | t.JSXText;
   let ast: t.JSXElement;
-
+  console.log('vnode.tag', vnode.tag, vnode.type);
   if (type === 1) {
     let commonAttrs: t.JSXAttribute[] = [];
     if (attrs) {
@@ -50,6 +51,10 @@ export default function jsxElementGenerator(
       });
     }
 
+    // if has ref attr
+    if(vnode.ref) {
+      refs.push(JSON.parse(vnode.ref));
+    }
     // Support following syntax:
     // <div class="wrapper"/> -> <div className="wrapper"/>
     let staticClassAttrs: t.JSXAttribute[] = [];
@@ -152,14 +157,11 @@ export default function jsxElementGenerator(
                 t.jSXExpressionContainer(t.identifier(directive.value))
               )
             );
-            console.log(t.objectExpression([
-              t.objectProperty(t.identifier('val'), t.identifier(directive.value))
-            ]))
 
             const expression = t.arrowFunctionExpression(
               [t.identifier('val')],
               t.callExpression(
-                t.memberExpression(t.identifier('this'), t.identifier('setState')),
+                t.memberExpression(t.thisExpression(), t.identifier('setState')),
                 [
                   t.objectExpression([
                     t.objectProperty(t.identifier(directive.value), t.identifier('val'))
@@ -174,24 +176,40 @@ export default function jsxElementGenerator(
               )
             )
             break;
+          // case 'v-cloak': 
+          //   break;
           default:
             break;
         }
       });
     }
+    // is self closing tag
+    if(vnode.tag === 'img' || vnode.tag === 'input' || vnode.tag === 'br') {
 
-    element = t.jSXElement(
-      t.jSXOpeningElement(t.jSXIdentifier(vnode.tag), [
-        ...commonAttrs,
-        ...staticClassAttrs,
-        ...eventAttrs,
-        ...keyAttrs,
-        ...directivesAttr
-      ]),
-      t.jSXClosingElement(t.jSXIdentifier(vnode.tag)),
-      []
-    );
-    // console.log(commonAttrs, staticClassAttrs, eventAttrs, keyAttrs, directivesAttr)
+      element = t.jSXElement(
+        t.jSXOpeningElement(t.jSXIdentifier(vnode.tag), [
+          ...commonAttrs,
+          ...staticClassAttrs,
+          ...eventAttrs,
+          ...keyAttrs,
+          ...directivesAttr
+        ], true),
+        undefined,
+        []
+      );
+    } else {
+      element = t.jSXElement(
+        t.jSXOpeningElement(t.jSXIdentifier(vnode.tag), [
+          ...commonAttrs,
+          ...staticClassAttrs,
+          ...eventAttrs,
+          ...keyAttrs,
+          ...directivesAttr
+        ], ),
+        t.jSXClosingElement(t.jSXIdentifier(vnode.tag)),
+        []
+      );
+    }
     if (ifConditions) {
       // Support following syntax:
       // <div v-if="show"/> -> {show && <div/>}
@@ -206,16 +224,14 @@ export default function jsxElementGenerator(
         // ifConditions无限循环
         delete left.ifConditions;
         delete right.ifConditions;
-        let leftBlock = jsxElementGenerator(left, null, new Set());
-        let rightBlock = jsxElementGenerator(right, null, new Set());
-        console.log(leftBlock, rightBlock)
+        let leftBlock = jsxElementGenerator(left, null, new Set(), refs);
+        let rightBlock = jsxElementGenerator(right, null, new Set(), refs);
         // // let left = t.jSXElement(t.jSXOpeningElement(t.jSXIdentifier(tag), []), t.jSXClosingElement(t.jSXIdentifier(tag)), [])
         // // console.log('left', leftBlock)
         // // let rightBlock = ifConditions[1].block;
         wrappedElement = t.jSXExpressionContainer(
           t.conditionalExpression(parser.parseExpression(ifConditions[0].exp), leftBlock.ast, rightBlock.ast)
         );
-        console.log(wrappedElement)
 
       } else if (ifConditions.length > 2) {
         /**
@@ -252,7 +268,7 @@ export default function jsxElementGenerator(
 
   if (vnode.children && vnode.children.length > 0) {
     vnode.children.forEach((child: anyObject) => {
-      jsxElementGenerator(child, element, attrsCollector);
+      jsxElementGenerator(child, element, attrsCollector, refs);
     });
   }
 
@@ -271,6 +287,7 @@ export default function jsxElementGenerator(
 
   return {
     ast,
-    attrsCollector
+    attrsCollector,
+    refs
   };
 }
